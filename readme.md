@@ -371,3 +371,90 @@ dropout: 0.0
 + 進行 超參數搜尋（Hyperparameter Tuning）可進一步提升模型性能。
 
 ***
+
+## threshold設置
+
+在 YOLOv8 中，閾值（threshold） 主要指 信心閾值（confidence threshold） 
+和 非極大值抑制閾值（NMS threshold），這些參數控制模型的預測結果，確保輸出較可靠的偵測結果。
+
+### ✅ 1️⃣ YOLOv8 閾值相關參數
+
+|參數|預設值|作用|
+|---|---|---|
+|conf|0.25|信心閾值（Confidence Threshold）：低於此值的預測框將被忽略。|
+|iou|0.7|非極大值抑制（NMS IoU 閾值）：用於移除重疊的偵測框，確保每個物件只有一個偵測框。|
+|agnostic_nms|False|是否啟用類別無關的 NMS（適用於重疊物件較多的場景）。|
+|max_det|300|最大偵測數量，控制每張圖片最多輸出多少個目標框。|
+
+***
+
+### ✅ 2️⃣ 設定 conf 與 iou 閾值的方式
+
+#### (1) 直接在推理時設定
+
+當執行推理時，你可以直接設定 conf 和 iou：
+```python
+from ultralytics import YOLO
+
+# 載入模型
+model = YOLO("best.pt")
+
+# 設定信心閾值 0.5，NMS IoU 閾值 0.4
+results = model("image.jpg", conf=0.5, iou=0.4)
+
+# 顯示結果
+results.show()
+```
+
+***
+
+#### （2）設定到 .predict() 方法
+```python
+results = model.predict("image.jpg", conf=0.6, iou=0.5)
+```
++ conf=0.6：只顯示信心值 高於 60% 的預測結果。
+
++ iou=0.5：NMS IoU 閾值設定為 0.5，減少重疊的框。
+
+***
+
+#### （3）應用於影片或多張圖片
+```python
+model.train(data="data.yaml", epochs=100, conf=0.3, iou=0.5)
+```
+
++ 這樣在訓練時，模型會根據 conf=0.3 來篩選標註框。
+
+***
+
+#### ✅ 4️⃣ 設定 conf 與 iou 的最佳值
+
+|場景|建議 conf 值|建議 iou 值|
+|---|---|---|
+|一般物件偵測|0.25 - 0.5|0.5 - 0.7|
+|偵測小物件|0.2 - 0.4|0.4 - 0.6|
+|過濾假陽性（更嚴格）|0.5 - 0.7|0.3 - 0.5|
+
++ 如果你發現預測結果過多或誤判嚴重，可以嘗試 提高 conf 或 降低 iou。
+
+***
+
+#### ✅ 5️⃣ 如何測試最佳 threshold？
+
+如果你不確定哪個 conf 值效果最好，可以使用 多次測試不同的 threshold：
+```python
+for conf_thresh in [0.25, 0.5, 0.75]:
+    results = model("image.jpg", conf=conf_thresh, iou=0.5)
+    print(f"Conf = {conf_thresh}, Detections: {len(results[0].boxes)}")
+```
+
+這樣可以找到最適合你數據集的 conf 閥值。
+
+***
+
+#### ✅ 6️⃣ 總結
+conf 決定是否保留偵測框，較低值會產生更多預測，較高值可過濾掉低置信度的結果。
+iou 控制非極大值抑制（NMS），較低值減少重疊的框，較高值允許更多重疊物件。
+建議根據實際應用場景 測試不同的 conf 和 iou 值，找到最佳設定。
+
+***
