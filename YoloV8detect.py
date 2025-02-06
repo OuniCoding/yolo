@@ -2,9 +2,9 @@ from ultralytics import YOLO
 import cv2
 import os
 
-img_path = r'e:/logo/trans/2025-01-02/1/resultG/'
+img_path = r'e:/logo/trans/2025-01-10/1/resultNG/'
 out_path = r'outputs/'
-name_path = r'0102/'
+name_path = r'test1/'
 
 img_files = [_ for _ in os.listdir(img_path) if (_.endswith('.jpg') or _.endswith('.png') or _.endswith('.bmp'))]
 if not os.path.exists(out_path + name_path):
@@ -26,7 +26,7 @@ for t, i in enumerate(img_files):
     img = cv2.imread(img_path + i)
     # 圖像推理
     # results = model(img, save=True, project=out_path, name=name_path)
-    results = model(img, project=out_path, device=0)
+    results = model(img, project=out_path, device=0, conf=0.3, iou=0.4)
 
     result = results[0]
 
