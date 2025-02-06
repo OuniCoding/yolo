@@ -1,0 +1,6 @@
+path: f:\project\python\YoloV8
+train: images\train
+val: images\val
+
+nc: 4  # 類別數量
+names: ['cap_in', 'safe', 'broken', 'flaw']  # 類別名稱
