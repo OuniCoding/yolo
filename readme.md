@@ -142,7 +142,9 @@ names: ['cap_in', 'safe', 'broken', 'flaw']  # 類別名稱
 ```commandline
 yolo task=detect mode=train model=model\yolov8n.pt data=data\cap.yaml epochs=100 imgsz=416 batch=4 device=0
 ```
-
+```commandline
+yolo task=detect mode=train model=model\yolov8n.pt data=data\cap.yaml epochs=100 imgsz=416 batch=4 device=0 lr0=0.001 momentum=0.937 weight_decay=0.0005 patience=0
+```
 ***
 
 ## 步驟 6：模型評估與測試
@@ -458,3 +460,84 @@ iou 控制非極大值抑制（NMS），較低值減少重疊的框，較高值�
 建議根據實際應用場景 測試不同的 conf 和 iou 值，找到最佳設定。
 
 ***
+
+## 在 **YOLOv8** 中，`model.export()` 可以將模型匯出為多種格式，以便部署到不同的推理框架或設備上。
+
+---
+
+## ✅ **1️⃣ 可匯出的格式**
+以下是 `model.export()` 支援的格式：
+
+| **格式**      | **副檔名**    | **用途** |
+|--------------|-------------|---------|
+| **PyTorch**   | `.pt`        | YOLOv8 的原生格式，適用於 Python 環境 |
+| **TorchScript** | `.torchscript` | 適用於無 PyTorch 環境的 C++/Python 部署 |
+| **ONNX**      | `.onnx`      | 適用於 TensorRT、OpenVINO、ONNX Runtime |
+| **OpenVINO**  | `.xml` + `.bin` | Intel 硬體加速推理 |
+| **TensorRT**  | `.engine`    | NVIDIA GPU 硬體加速（Jetson、RTX 顯卡） |
+| **CoreML**    | `.mlmodel`   | Apple 設備（iOS/macOS） |
+| **TF SavedModel** | `.pb`    | TensorFlow 格式，適用於 TensorFlow 伺服器 |
+| **TF Lite**   | `.tflite`    | 適用於行動設備（Android、Raspberry Pi） |
+| **TF Edge TPU** | `.tflite` | Google Coral Edge TPU |
+| **FastSAM**   | `.onnx`      | 專門用於 segmentation（YOLOv8-SAM）|
+
+---
+
+## ✅ **2️⃣ 匯出方式**
+### **（1）基本匯出**
+```python
+from ultralytics import YOLO
+
+# 載入訓練好的 YOLOv8 模型
+model = YOLO("best.pt")
+
+# 匯出為 ONNX 格式
+model.export(format="onnx")
+```
+這會在 **當前目錄** 產生 `best.onnx`。
+
+---
+
+### **（2）指定匯出路徑**
+```python
+model.export(format="onnx", path="models/yolov8.onnx")
+```
+這會將 ONNX 模型存到 `models/yolov8.onnx`。
+
+---
+
+### **（3）匯出為 TensorRT**
+```python
+model.export(format="engine")  # 需要安裝 TensorRT
+```
+
+---
+
+### **（4）匯出為 TensorFlow Lite**
+```python
+model.export(format="tflite")  # 適用於行動裝置
+```
+
+---
+
+### **（5）啟用 FP16（半精度）加速**
+某些格式（如 TensorRT、ONNX）可以啟用 **FP16 半精度** 加速：
+```python
+model.export(format="onnx", half=True)  # 啟用 FP16
+```
+
+---
+
+## ✅ **3️⃣ 匯出格式比較**
+| **格式**      | **適用場景** | **優勢** |
+|--------------|------------|--------|
+| **PyTorch (`.pt`)**  | Python 環境 | 訓練與推理 |
+| **ONNX (`.onnx`)**   | TensorRT、OpenVINO | 跨平台、推理快 |
+| **TensorRT (`.engine`)** | NVIDIA GPU | 推理極快 |
+| **TF Lite (`.tflite`)** | 行動裝置 | 輕量化 |
+| **OpenVINO (`.xml`)** | Intel 硬體 | 最佳化推理 |
+| **CoreML (`.mlmodel`)** | Apple 設備 | iOS/macOS |
+| **TorchScript (`.torchscript`)** | 無 PyTorch 環境 | C++/Python |
+
+如果你要 **在 PC 上高效推理**，建議使用 **ONNX 或 TensorRT**。  
+如果你要 **在行動裝置運行**，建議使用 **TFLite 或 CoreML**。🚀
