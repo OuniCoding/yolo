@@ -4,6 +4,8 @@
 
 ```commandline
  pip install ultralytics
+ 
+ pip install torch==2.6.0+cu126 torchvision==2.6.1+cu126 torchaudio==0.21.0 --extra-index-url https://download.pytorch.org/whl/cu126
 ```
 2. 確認依賴
 
