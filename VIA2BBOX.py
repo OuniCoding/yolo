@@ -9,7 +9,7 @@ class_mapping = {
 }
 
 # 讀取 VIA JSON
-with open(r"F:\project\python\shape\via\via_project_14Feb2025_11h28m.json", "r", encoding="utf-8") as f:
+with open(r"via\via_project_14Feb2025_11h28m.json", "r", encoding="utf-8") as f:
     via_data = json.load(f)
 
 # 轉換標註
@@ -19,7 +19,7 @@ for img_key, img_data in via_img_metadata.items():
     img_width = 416 #1920  # 可改成動態獲取
     img_height = 416    #1080
 
-    txt_filename = os.path.splitext(img_filename)[0] + ".txt"
+    txt_filename = 'via\\' + os.path.splitext(img_filename)[0] + ".txt"
 
     with open(txt_filename, "w") as txt_file:
         for region in img_data["regions"]:
