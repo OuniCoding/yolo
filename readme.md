@@ -543,3 +543,14 @@ model.export(format="onnx", half=True)  # 啟用 FP16
 
 如果你要 **在 PC 上高效推理**，建議使用 **ONNX 或 TensorRT**。  
 如果你要 **在行動裝置運行**，建議使用 **TFLite 或 CoreML**。🚀
+
+---
+
+### 程式用途說明:
+
++ [yolov8_model.py](yolov8_model.py): 下載官方模型
++ [VIA2Seg.py](VIA2Seg.py): VIA JSON 轉 YOLOv8 Segmentation, 多邊形標示轉換
++ [VIA2BBOX.py](VIA2BBOX.py): VIA JSON 轉換 Bounding Box, 矩形邊界標示
++ [YoloV8detect.py](YoloV8detect.py): 檢測模型與辨識測試
+
+---
