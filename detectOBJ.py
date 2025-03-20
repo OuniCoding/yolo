@@ -16,7 +16,7 @@
 需要將 data/train、data/validation 和 data/test 替換為您自己的資料夾路徑
 根據影像資料集，調整 img_width、img_height、batch_size、encoding_dim 和 threshold 等參數。
 '''
-import tensorflow as tf
+import tensorflow as tf     #v2.10 -> v2.14
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -25,6 +25,18 @@ import matplotlib.pyplot as plt
 import cv2
 import os
 
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
+
 # 1. 資料準備 (假設您的影像資料夾結構如下)
 # data/train/normal/xxx.jpg
 # data/validation/normal/xxx.jpg
@@ -32,7 +44,7 @@ import os
 
 # 2. 使用 ImageDataGenerator 載入影像
 img_width, img_height = 256, 256
-batch_size = 32
+batch_size = 4  # GPU記憶體多時可以加大 32
 
 datagen = ImageDataGenerator(rescale=1./255)
 
@@ -40,44 +52,53 @@ datagen = ImageDataGenerator(rescale=1./255)
 # color_mode='grayscale'代表灰階，如果圖片是彩色的，改為'rgb'
 # class_mode='input'代表將輸入的圖直接作為標籤，因為我們再進行非監督式的學習
 train_generator = datagen.flow_from_directory(
-    'data/train',
+    'E:\\logo\\white\\OUTSIDE\\train',
     target_size=(img_width, img_height),
     batch_size=batch_size,
-    color_mode='grayscale',
+    color_mode='rgb',   #'grayscale',
     class_mode='input'
 )
 
 validation_generator = datagen.flow_from_directory(
-    'data/validation',
+    'E:\\logo\\white\\OUTSIDE\\validation',
     target_size=(img_width, img_height),
     batch_size=batch_size,
-    color_mode='grayscale',
+    color_mode='rgb',   #'grayscale',
     class_mode='input'
 )
 
 # 3. 建立和訓練自編碼器模型
-encoding_dim = 128
+encoding_dim = 65536 #128
 
-input_img = keras.Input(shape=(img_width, img_height, 1))
+input_img = keras.Input(shape=(img_width, img_height, 3))
 
 # 編碼器部分
 encoded = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(input_img)
 encoded = layers.MaxPooling2D((2, 2))(encoded)
 encoded = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(encoded)
 encoded = layers.MaxPooling2D((2, 2))(encoded)
+encoded = layers.Conv2D(128, (3, 3), activation='relu', padding='same')(encoded)
+encoded = layers.MaxPooling2D((2, 2))(encoded)
+encoded = layers.Conv2D(256, (3, 3), activation='relu', padding='same')(encoded)
+encoded = layers.MaxPooling2D((2, 2))(encoded)
 # 扁平化特徵圖
 flat_encoded = layers.Flatten()(encoded)
 # 瓶頸層
 bottleneck = layers.Dense(encoding_dim, activation='relu')(flat_encoded)
 
+
 # 解碼器部分
 # 將瓶頸層的輸出 reshape 回到卷積層所需的形狀
-reshaped_bottleneck = layers.Reshape((img_width // 4, img_height // 4, 64))(bottleneck) # 根據MaxPooling2D調整
-decoded = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(reshaped_bottleneck)
+reshaped_bottleneck = layers.Reshape((img_width // 16, img_height // 16, 256))(bottleneck) # 根據MaxPooling2D調整
+decoded = layers.Conv2D(256, (3, 3), activation='relu', padding='same')(reshaped_bottleneck)
+decoded = layers.UpSampling2D((2, 2))(decoded)
+decoded = layers.Conv2D(128, (3, 3), activation='relu', padding='same')(decoded)
+decoded = layers.UpSampling2D((2, 2))(decoded)
+decoded = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(decoded)
 decoded = layers.UpSampling2D((2, 2))(decoded)
 decoded = layers.Conv2D(32, (3, 3), activation='relu', padding='same')(decoded)
 decoded = layers.UpSampling2D((2, 2))(decoded)
-decoded = layers.Conv2D(1, (3, 3), activation='sigmoid', padding='same')(decoded)
+decoded = layers.Conv2D(3, (3, 3), activation='sigmoid', padding='same')(decoded) # 輸出 RGB 影像
 
 autoencoder = keras.Model(input_img, decoded)
 autoencoder.compile(optimizer='adam', loss='binary_crossentropy')
@@ -94,10 +115,10 @@ autoencoder.fit(
 test_datagen = ImageDataGenerator(rescale=1./255)
 # flow_from_directory() 函式會自動從指定的資料夾中載入影像，並根據資料夾名稱設定標籤。
 test_generator = test_datagen.flow_from_directory(
-    'data/test',
+    'E:\\logo\\white\\OUTSIDE\\test',
     target_size=(img_width, img_height),
     batch_size=1, # 測試時，batch_size 設為 1
-    color_mode='grayscale',
+    color_mode='rgb',   #'grayscale',
     class_mode='input',
     shuffle=False # 確保測試結果的順序與檔案列表一致
 )
@@ -117,13 +138,15 @@ for i in range(n):
     
     # 顯示原始影像
     ax = plt.subplot(2, n, i + 1)
-    plt.imshow(test_generator[0][0][index].reshape(img_width, img_height), cmap='gray')
+    # plt.imshow(test_generator[0][0][index].reshape(img_width, img_height), cmap='gray')
+    plt.imshow(test_generator[0][0][index])
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
     # 顯示重建後的影像
     ax = plt.subplot(2, n, i + 1 + n)
-    plt.imshow(decoded_imgs[index].reshape(img_width, img_height), cmap='gray')
+    # plt.imshow(decoded_imgs[index].reshape(img_width, img_height), cmap='gray')
+    plt.imshow(decoded_imgs[index])
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 plt.show()
