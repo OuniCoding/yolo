@@ -8,6 +8,8 @@ import cv2
 import os
 import time
 
+import rotation as ro
+
 def release_model(model):   # release_model(model)
     import torch, gc
     del model
@@ -15,7 +17,7 @@ def release_model(model):   # release_model(model)
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-img_path = r'F:\\project\\味全貝納頌\\OCR_Code\\' # r'e:/logo/trans/2025-01-10/1/resultNG/'
+img_path = r'F:\\project\\味全貝納頌\\OCR_Code\\sample\\' # r'e:/logo/trans/2025-01-10/1/resultNG/'
 out_path = r'outputs/'
 name_path = r'test1/'
 
@@ -70,8 +72,28 @@ colors = [(255, 41, 5),
           ]
 
 for t, i in enumerate(img_files):
+    print('filename:', i)
+    thres = 50
+    if i == '4.jpg' or i == '901jpg.jpg':
+        thres = 103
+    elif i == '5.jpg':
+        thres = 106
+    elif i == '6.jpg':
+        thres = 122
+    elif i == '1803.jpg' or i == '3.jpg':
+        thres = 25
+    elif i == '2702.jpg' or i == '901.jpg' or i == '2.jpg':
+        thres = 45
+
     begin_time = time.time()
     img = cv2.imread(img_path + i)
+    # 校正圖像
+    corrected, angle = ro.correct_rotation_by_layout(img, thres)
+    print(f"建議旋轉角度：{angle}°")
+    # corrected = cv2.resize(corrected, (512, 512), interpolation=cv2.INTER_LINEAR)
+    cv2.imshow("Corrected", corrected)
+    img = corrected.copy()
+
     # 圖像推理
     # results = model(img, save=True, project=out_path, name=name_path)
     results = model(img, project=out_path, device='cuda:0', conf=0.3, iou=0.4)
@@ -152,9 +174,9 @@ for t, i in enumerate(img_files):
             print(f"第 {j + 1} 行：{line_text}")
 
     cv2.imshow('Inference', img)
-    cv2.imwrite(out_path + i, img)
-    print(f'工作時間={time.time() - begin_time}s')
+    cv2.imwrite(out_path + 'ocr' + i, img)
+    print(f'工作時間={time.time() - begin_time}s \n')
 
-    cv2.waitKey(10)
+    cv2.waitKey(1)
 cv2.destroyAllWindows()
 release_model(model)
