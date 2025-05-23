@@ -554,3 +554,217 @@ model.export(format="onnx", half=True)  # 啟用 FP16
 + [YoloV8detect.py](YoloV8detect.py): 檢測模型與辨識測試
 
 ---
+學習率 (lr0) 變大學習率是高還是低
+---
+## ✅ `lr0` 是什麼？
+在 YOLOv8 的訓練設定中，`lr0` 是指 **初始學習率（learning rate 0）**，是訓練一開始所用的學習率。
+
+---
+
+## ✅ 變大代表什麼？
+
+| `lr0` 值變大 | → 代表 **學習率變高** |
+|--------------|------------------------|
+| `lr0` 值變小 | → 代表 **學習率變低** |
+
+也就是說：
+```yaml
+lr0: 0.01   # 高學習率（大步前進）
+lr0: 0.001  # 低學習率（小步調整）
+```
+
+---
+
+## ✅ 學習率高 vs 低 的差異
+
+| 學習率 | 優點 | 缺點 |
+|--------|------|------|
+| 高（如 0.01） | 訓練收斂快 | 容易不穩定、震盪或錯過最優解 |
+| 低（如 0.001） | 收斂穩定，找到更佳結果 | 訓練時間久，有可能陷入區域最小值 |
+
+---
+
+## ✅ YOLOv8 中建議設定
+YOLOv8 通常預設學習率如下（依模型大小調整）：
+```yaml
+lr0: 0.01       # 大模型（如 yolov8x）
+lr0: 0.001      # 小模型（如 yolov8n）
+```
+
+你也可以搭配 `cosine` 或 `linear` 的學習率調度器（scheduler），讓學習率慢慢下降。
+
+---
+
+## ✅ 範例：調整 `lr0`
+如果你發現模型訓練「卡住或不學習」，可以試著調高 `lr0`。
+如果模型 loss 一直震盪或發散，就應該調低 `lr0`。
+
+---
+前使用的是 **YOLOv8s（small）** 模型，那針對性的學習率 (`lr0`) 建議 
+---
+
+## ✅ YOLOv8s 預設的學習率設定
+
+在 YOLOv8 官方設定中，對於 `yolov8s` 模型，預設值如下（可在 `train.py` 或 CLI 參數中自訂）：
+
+```yaml
+lr0: 0.01      # 初始學習率（建議值）
+lrf: 0.01      # 最小學習率 = lr0 * lrf
+```
+
+### 💡 預設是「餘弦遞減（cosine decay）」的學習率策略：
+
+| 訓練初期 | 使用 `lr0 = 0.01` |
+|----------|------------------|
+| 訓練後期 | 慢慢降到 `lr0 × lrf = 0.0001` |
+
+---
+
+## ✅ 什麼時候需要改 `lr0`？
+
+| 狀況 | 建議調整 |
+|------|-----------|
+| loss 卡住，不下降 | 調高 `lr0`，如 `0.015` |
+| loss 一直震盪、不穩定 | 調低 `lr0`，如 `0.005` |
+| 使用自定義資料集、數據量較小 | 建議調低 `lr0`（避免過擬合） |
+| 使用預訓練模型 finetune | 可微調為 `0.003 ~ 0.005` |
+
+---
+
+## ✅ 實務推薦值
+
+| 場景 | 建議 `lr0` |
+|------|-------------|
+| 預設情況、大量資料集 | `0.01` ✅ |
+| 中小型資料集（自定義） | `0.005` 👍 |
+| 極小資料集（< 1000 張） | `0.002 ~ 0.003` ⛳ |
+| 過擬合風險高 | `0.001` 或更低 |
+
+---
+
+## ✅ 在指令中設定範例
+
+```bash
+yolo task=detect mode=train model=yolov8s.pt data=your.yaml epochs=100 lr0=0.005
+```
+
+---
+
+## 調整 `momentum` 和 `weight_decay` 可以顯著影響 YOLOv8 的訓練穩定性與泛化能力，特別是你已經在調整 `lr0`，這兩個參數就更值得優化了 🚀
+
+---
+
+## ✅ 這兩個參數是什麼？
+
+| 參數           | 意義 |
+|----------------|------|
+| `momentum`     | 加速梯度下降、減少震盪（像慣性） |
+| `weight_decay` | 權重衰減（L2 正則化），防止過擬合 |
+
+---
+
+## ✅ 官方 YOLOv8 預設值（針對 SGD 優化器）：
+
+```yaml
+momentum: 0.937
+weight_decay: 0.0005
+```
+
+---
+
+## ✅ 調整建議（含原因與效果）
+
+### 🔧 `momentum`
+
+| 情況 | 建議值 | 效果 |
+|------|--------|------|
+| 預設情況 | `0.9 ~ 0.95` | 穩定且快速收斂 |
+| loss 上下震盪劇烈 | 降至 `0.8 ~ 0.85` | 減少跳動，損失更穩定 |
+| 太穩定但收斂慢 | 拉高至 `0.95 ~ 0.99` | 更快下降，但可能不穩定 |
+
+🔸 建議初期用 `0.937`，根據 loss 曲線微調。
+
+---
+
+### 🧽 `weight_decay`
+
+| 情況 | 建議值 | 效果 |
+|------|--------|------|
+| 資料量大、模型容易過擬合 | `0.001 ~ 0.005` | 更強正則化，防止過擬合 |
+| 資料量小、模型訓練困難 | `0.0001 ~ 0.0003` | 弱一點的正則化，讓模型學得更多 |
+| 預設情況 | `0.0005` | 多數情況下表現良好 ✅ |
+
+🔸 若你發現訓練準確率很好但驗證集差 → 可考慮**拉高 `weight_decay`**。
+
+---
+
+## ✅ 如何實際應用
+
+### 在指令中指定：
+
+```bash
+yolo task=detect mode=train model=yolov8s.pt data=your.yaml epochs=100 \
+lr0=0.005 momentum=0.937 weight_decay=0.0005
+```
+
+### 在 `yaml` 超參數檔中設定（例如 `hyp.yaml`）：
+
+```yaml
+lr0: 0.005
+momentum: 0.937
+weight_decay: 0.0005
+```
+
+---
+
+## ✅ 小技巧：配合 `lr0` 做聯動調整
+
+| lr0     | momentum | weight_decay |
+|---------|----------|---------------|
+| 高（0.01） | 0.9 ~ 0.95 | 0.0005 ~ 0.001 |
+| 中（0.003~0.005） | 0.937（預設） | 0.0003 ~ 0.0007 |
+| 低（<0.003） | 0.85 ~ 0.9 | 0.0001 ~ 0.0003 |
+
+---
+
+## ✅ 結論整理
+
+| 參數         | 目標與建議 |
+|--------------|------------|
+| `momentum`   | 控制下降速度與穩定性，通常用 `0.9~0.95` |
+| `weight_decay` | 控制過擬合，資料越少越要小一點 |
+
+---
+
+如果你有一個具體的資料集大小或遇到過擬合/訓練不穩的狀況，我可以幫你直接配一組參數組合適用你的情境，要不要我幫你搭配一下？😎
+
+---
+patience=0 ; disable early stopping
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam1.yaml epochs=8000 imgsz=256 batch=32 device=0
+yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam45.yaml epochs=8000 imgsz=256 batch=64 device=0 patience=0
+yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam36.yaml epochs=8000 imgsz=256 batch=64 device=0 patience=0 lr0=0.002 momentum=0.875 weight_decay=0.0002
+```
+```commandline
+yolo task=detect mode=train model=yolov8s.pt \
+data=your_dataset.yaml \
+hyp=data\my_hyp.yaml \
+epochs=150 \
+imgsz=256 \
+batch=8 \
+name=yolov8s-custom
+```
+
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam1.yaml epochs=8000 imgsz=256 batch=32 device=0 patience=0
+```
+
+進行推論：
+
+```commandline
+yolo task=detect mode=predict model=runs/detect/cam1_train/weights/best.pt source=D:\label\AI\glass-bottle\2025-03-24\1\resultG conf=0.45
+yolo task=detect mode=predict model=runs/detect/train/weights/best.pt source=D:\label\AI\glass-bottle\2025-03-18\5\resultNG conf=0.2
+```
+conf : 設定信心閾值（confidence threshold），只顯示 置信度 > 45% 的結果
+
+
