@@ -9,9 +9,17 @@ import os
 import time
 import datetime
 import torch
-
 import rotation as ro
+import argparse
 
+# 處理參數與環境變數
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', action='store_true')
+args = parser.parse_args()
+
+DEBUG_MODE = args.debug
+# 通知模組進入 debug 模式
+ro.set_debug_mode(DEBUG_MODE)
 def release_model(model):   # release_model(model)
     import gc
     del model
@@ -20,13 +28,14 @@ def release_model(model):   # release_model(model)
         torch.cuda.empty_cache()
 
 # img_path = r'F:\\project\\味全貝納頌\\OCR_Code\\sample\\' # thres =50 # r'e:/logo/trans/2025-01-10/1/resultNG/'
-img_path = r'E:\\AI\\1TTF\\OCR DATA\\OCR DATA\\black\\' # thres =126, thres_m=38
-# img_path = r'E:\\AI\\1TTF\\OCR DATA\\OCR DATA\\blue\\' # thres =128, thres_m=38
+# img_path = r'D:\\label\\AI\\1TTF\\OCR DATA\\OCR DATA\\pink\\' # thres =126, thres_m=38
+# img_path = r'D:\\label\\AI\\1TTF\\OCR DATA\\OCR DATA\\blue\\' # thres =128, thres_m=38
 # img_path = r'E:\\AI\\1TTF\\OCR DATA\\OCR DATA\\gold\\' # thres =229 ?? thres_m = 120
 # img_path = r'E:\\AI\\1TTF\\OCR DATA\\OCR DATA\\pink\\' # thres =230 ?? thres_m = 120
 # img_path = r'E:\\AI\\1TTF\\OCR DATA\\OCR DATA\\purple\\' # thres =128, thres_m=40
+img_path = r'E:\\logo\\經典拿鐵\\2025-06-11\\1\\resultG\\'
 now = datetime.datetime.now()
-new = datetime.datetime.now()+ datetime.timedelta(days=-12)
+new = datetime.datetime.now()+ datetime.timedelta(days=15)
 now_str = now.strftime('%Y%m%d')
 new_str = new.strftime('%Y%m%d')
 print(f'今日日期:{now_str}, 目標日期:{new_str}')
@@ -34,7 +43,7 @@ print(f'今日日期:{now_str}, 目標日期:{new_str}')
 # 載入模型
 # model = YOLO(r'F:\project\ouni_mutil_cam\cfg\cam2\train\weights\best.pt')  #('runs/detect/train/weights/best.pt')
 # model = YOLO(r'F:\project\python\YoloV8\runs\detect\cam1_train\weights\best.pt')
-model = YOLO(r'E:\AI\1TTF\cfg\train\weights\best.pt')
+model = YOLO(r'E:\AI\1TTF\cfg\ocr_V6_3_earlyStop\train\weights\best.pt')
 # 類別名稱對應表
 class_names = model.names
 colors = [(255, 41, 5),
@@ -74,26 +83,26 @@ colors = [(255, 41, 5),
           (7, 94, 255),
           (15, 255, 247)
           ]
-
 # 預先載入
-# print(datetime.datetime.now())
 frame = cv2.imread('black512.jpg')
 predict = model(frame)
-# print(datetime.datetime.now())
 # 讀取檢測圖檔
 out_path = r'outputs/'
-name_path = r'test1/'
+name_path = r'test2/'
 
 img_files = [_ for _ in os.listdir(img_path) if (_.endswith('.jpg') or _.endswith('.png') or _.endswith('.bmp'))]
 if not os.path.exists(out_path + name_path):
     os.makedirs(out_path + name_path)
 
 out_path = out_path + name_path
-
-for t, name in enumerate(img_files):
-    print('filename:', name)
-    thres = 126  #50
-    thres_m = 38
+index = 0
+while True:
+    name = img_files[index]
+# for t, name in enumerate(img_files):
+    print('filename:', img_path+name)
+    thres = 163 #163  133
+    thres_m = 43    #43  28
+    checkRaduis = 65
     if name == '4.jpg' or name == '901jpg.jpg':
         thres = 103
     elif name == '5.jpg':
@@ -107,7 +116,7 @@ for t, name in enumerate(img_files):
 
     begin_time = time.time()
     img = cv2.imread(img_path + name)
-
+    print(img.shape)
     # 校正圖像, 文字轉向水平排列
     rotated = ro.rotate_image_to_horizontal_text(img, thres)
 
@@ -128,23 +137,26 @@ for t, name in enumerate(img_files):
     print(f'半徑pixels={radius}')
     black = cv2.imread('black512.jpg')
     black_b = black.copy()  #cv2.cvtColor(black, cv2.COLOR_BGR2GRAY)
-    cv2.circle(black_b, center, radius-55, (255, 255, 255), -1)
+    cv2.circle(black_b, center, radius-checkRaduis, (255, 255, 255), -1)
     ret, black_b = cv2.threshold(black_b, 1, 255, cv2.THRESH_BINARY)
-    cv2.imshow('Mask', black_b)
+    if DEBUG_MODE:
+        cv2.imshow('Mask', black_b)
     # image = cv2.bitwise_and(maskimg, black_b)
     rotated_temp = rotated.copy()
     rotated = cv2.bitwise_and(maskimg, black_b)
-    cv2.imshow('Mask_R', rotated)
+    if DEBUG_MODE:
+        cv2.imshow('Mask_R', rotated)
 
     # 文字是否上下顛倒
     h, w = rotated.shape[:2]
     circle_center = center      #(w // 2, h // 2)
-    circle_radius = radius-55   #min(w, h) // 2 - 100  # 根據紅圈估個近似值
+    circle_radius = radius-checkRaduis   #min(w, h) // 2 - 100  # 根據紅圈估個近似值
 
     gray = cv2.cvtColor(rotated, cv2.COLOR_BGR2GRAY)
     # _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_OTSU | cv2.THRESH_BINARY_INV)
     ret, thresh = cv2.threshold(gray, thres, 255, cv2.THRESH_BINARY)
-    cv2.imshow('R', thresh)
+    if DEBUG_MODE:
+        cv2.imshow('R', thresh)
 
     # --------------------------------------------------------------------------------------------------------------------
     # 高斯平滑 去噪
@@ -170,7 +182,8 @@ for t, name in enumerate(img_files):
             M = cv2.getRotationMatrix2D((w // 2, h // 2), 180, 1.0)
             rotated = cv2.warpAffine(rotated, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
             rotated_temp = cv2.warpAffine(rotated_temp, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
-            cv2.imshow('R1', rotated)
+            if DEBUG_MODE:
+                cv2.imshow('R1', rotated)
             circle_center = (512 - circle_center[0], 512 - circle_center[1])
     # --------------------------------------------------------------------------------------------------------------------
 
@@ -180,7 +193,7 @@ for t, name in enumerate(img_files):
 
     # 圖像推理
     # results = model(img, save=True, project=out_path, name=name_path)
-    results = model(corrected, project=out_path, device='cuda:0', conf=0.5, iou=0.4)
+    results = model(corrected, project=out_path, device='cuda:0', conf=0.45, iou=0.5, agnostic_nms=True) # conf=0.6, iou=0.5, agnostic_nms=True
 
     result = results[0]
 
@@ -199,7 +212,7 @@ for t, name in enumerate(img_files):
         conf = float(box.conf)
         xyxy = box.xyxy.tolist()[0]
 
-        # print(f"Class: {cls_name}, Confidence: {conf:.2f}, BBox: {xyxy}")
+        print(f"Class: {cls_name}, Confidence: {conf:.2f}, BBox: {xyxy}")
 
         cv2.rectangle(rotated_temp, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), colors[cls_id], 2)
         cv2.putText(rotated_temp, "{}".format(cls_name),
@@ -264,6 +277,17 @@ for t, name in enumerate(img_files):
     cv2.imwrite(out_path + 'ocr' + name, rotated_temp)
     print(f'工作時間={time.time() - begin_time}s \n')
 
-    cv2.waitKey(0)
+    # key = cv2.waitKey(0) & 0xFF
+    key = cv2.waitKeyEx(0)
+    if key & 0xff == ord('q') or key & 0xff == ord('Q'):
+        break
+    elif key == 2490368 or key == 2424832:
+        index -= 1
+        if index < 0:
+            index = len(img_files)-1
+    elif key == 2621440 or key == 2555904:
+        index += 1
+        if index >= len(img_files):
+            index = 0
 cv2.destroyAllWindows()
 release_model(model)

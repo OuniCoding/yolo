@@ -744,6 +744,24 @@ patience=0 ; disable early stopping
 yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam1.yaml epochs=8000 imgsz=256 batch=32 device=0
 yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam45.yaml epochs=8000 imgsz=256 batch=64 device=0 patience=0
 yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam36.yaml epochs=8000 imgsz=256 batch=64 device=0 patience=0 lr0=0.002 momentum=0.875 weight_decay=0.0002
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=8000 imgsz=512 batch=64 device=0 patience=0 lr0=0.002 momentum=0.875 weight_decay=0.0002 fliplr=0.0 flipud=0.0
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 patience=0 lr0=0.003 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+```
+ocr_v6_0:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.005 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+```
+ocr_v6_1:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.003 momentum=0.937 weight_decay=0.0003 fliplr=0.0 flipud=0.0
+```
+ocr_v6_2:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.003 momentum=0.9 weight_decay=0.0003 fliplr=0.0 flipud=0.0
+```
+ocr_v6_3:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.004 momentum=0.975 weight_decay=0.0002 fliplr=0.0 flipud=0.0
 ```
 ```commandline
 yolo task=detect mode=train model=yolov8s.pt \
@@ -757,6 +775,11 @@ name=yolov8s-custom
 
 ```commandline
 yolo task=detect mode=train model=model\yolov8s.pt data=data\cap_cam1.yaml epochs=8000 imgsz=256 batch=32 device=0 patience=0
+```
+測試模型效果：
+
+```commandline
+yolo task=detect mode=val model=runs/detect/train/weights/best.pt data=data\font_ocr.yaml
 ```
 
 進行推論：

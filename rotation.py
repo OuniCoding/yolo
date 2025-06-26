@@ -2,6 +2,14 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+DEBUG_MODE = False
+
+def set_debug_mode(flag: bool):
+    global DEBUG_MODE
+    DEBUG_MODE = flag
+    if DEBUG_MODE:
+        print("✅ [mymodule] DEBUG 模式已啟用")
+
 def group_by_x_axis(points, threshold=10):
     """
     根據 x 值接近程度進行分類分組。
@@ -80,7 +88,8 @@ def rotate_image_to_horizontal_text(image, thres):
     blurred = cv2.GaussianBlur(Sobel, (3, 3), 0)  # 再進行一次高斯去噪
     # 注意170可以替換的
     ret, Binary = cv2.threshold(blurred, 10, 255, cv2.THRESH_BINARY)
-    # cv2.imshow('Binary', Binary)
+    if DEBUG_MODE:
+        cv2.imshow('Binary', Binary)
 
     # 找輪廓
     # contours, _ = cv2.findContours(bin_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -98,7 +107,8 @@ def rotate_image_to_horizontal_text(image, thres):
             threshCnts.append(cnt)
     cur_img = Gaussian.copy()  #Binary.copy()
     cv2.drawContours(cur_img, threshCnts, -1, (255, 255, 255), 1)
-    cv2.imshow('d',cur_img)
+    if DEBUG_MODE:
+        cv2.imshow('d',cur_img)
 
     if len(centers) < 2:
         print("❌ 無法找到任何文字輪廓")
@@ -126,8 +136,11 @@ def rotate_image_to_horizontal_text(image, thres):
 
     # 執行旋轉
     (h, w) = image.shape[:2]
-    angle1 = angle-180
-    M = cv2.getRotationMatrix2D((w // 2, h // 2), angle-180, 1.0)
+    if angle != 0:
+        angle1 = angle-180
+    else:
+        angle1 = angle
+    M = cv2.getRotationMatrix2D((w // 2, h // 2), angle1, 1.0)   # angle-180
     # rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
     rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
