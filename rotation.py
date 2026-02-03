@@ -66,6 +66,7 @@ def rotate_image_to_horizontal_text(image, thres):
     # ---------------------------------------------------------------------------------------
     # 高斯平滑 去噪
     Gaussian = cv2.GaussianBlur(bin_img, (5, 5), 0, 0, cv2.BORDER_DEFAULT)
+    #1024 Gaussian = cv2.GaussianBlur(bin_img, (9, 9), 0, 0, cv2.BORDER_DEFAULT)
     # 中值濾波
     Median = cv2.medianBlur(Gaussian, 5)
     # cv2.imshow('Median', Median)
@@ -112,7 +113,8 @@ def rotate_image_to_horizontal_text(image, thres):
 
     if len(centers) < 2:
         print("❌ 無法找到任何文字輪廓")
-        return image
+        # print(np.array([]))
+        return np.array([]), image, bin_img
 
     # 合併所有文字區域，取得最小外接矩形
     # all_points = np.vstack(contours)
@@ -137,11 +139,28 @@ def rotate_image_to_horizontal_text(image, thres):
     # 執行旋轉
     (h, w) = image.shape[:2]
     if angle != 0:
-        angle1 = angle-180
+        if angle > 90:
+            angle1 = angle-180
+        else:
+            angle1 = angle
     else:
         angle1 = angle
     M = cv2.getRotationMatrix2D((w // 2, h // 2), angle1, 1.0)   # angle-180
     # rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
     rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    r_bin = cv2.warpAffine(bin_img, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    cv2.imshow('r_bin', r_bin)
 
-    return rotated
+    # 旋轉矩形四點座標
+    rect_pts = np.array([box], dtype=np.float32)
+    # 計算旋轉後圖像邊界大小
+    # rect_pts 是 (4, 2)，需轉成 (4, 1, 2)
+    rect_pts_input = rect_pts.reshape(-1, 1, 2)
+    rect_pts_rotated = cv2.transform(rect_pts_input, M)
+    rect_pts_rotated = rect_pts_rotated.reshape(-1, 2)
+    rect_pts_rotated = np.intp(rect_pts_rotated)
+    print(box, rect_pts_rotated)
+    # cv2.drawContours(img, [rect_pts_rotated], 0, (255, 255, 0), 2)  # 綠色框，線寬為2
+    # cv2.imshow('draw', img)
+
+    return rect_pts_rotated, rotated, r_bin

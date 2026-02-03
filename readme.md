@@ -763,6 +763,34 @@ ocr_v6_3:
 ```commandline
 yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.004 momentum=0.975 weight_decay=0.0002 fliplr=0.0 flipud=0.0
 ```
+ocr_v6_4:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.004 momentum=0.95 weight_decay=0.0001 fliplr=0.0 flipud=0.0
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.005 momentum=0.937 weight_decay=0.0004 fliplr=0.0 flipud=0.0
+```
+ocr_v7:
+```commandline
+yolo task=detect mode=train model=model\yolov8s.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.005 momentum=0.937 weight_decay=0.0004 fliplr=0.0 flipud=0.0
+```
+ocr_v8m ~ v11:
+預設
+```commandline
+yolo task=detect mode=train model=model\yolov8m.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.01 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+```
+ocr_v12 : V11持續學習
+```commandline
+yolo train model=D:\project\YoloV8\runs\detect\ocr_V11default\train\weights\best.pt data=data\font_ocr_continue.yaml epochs=40 imgsz=512 batch=16 device=0 lr0=0.003 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+yolo train model=D:\project\YoloV8\runs\detect\ocr_V11default\train\weights\last.pt data=data\font_ocr_continue.yaml epochs=40 imgsz=512 batch=16 device=0 lr0=0.003 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+```
+ocr_v12:
+預設
+```commandline
+yolo task=detect mode=train model=model\yolov8l.pt data=data\font_ocr.yaml epochs=150 imgsz=512 batch=16 device=0 lr0=0.01 momentum=0.937 weight_decay=0.0005 fliplr=0.0 flipud=0.0
+```
+
+```commandline
+yolo task=detect mode=train model=model\yolov8m.pt data=data\font_ocr.yaml epochs=70000 imgsz=512 batch=64 device=0 lr0=0.005 momentum=0.937 weight_decay=0.0004 fliplr=0.0 flipud=0.0
+```
 ```commandline
 yolo task=detect mode=train model=yolov8s.pt \
 data=your_dataset.yaml \
